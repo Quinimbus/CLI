@@ -21,16 +21,16 @@ jobs:
           components: 'native-image'
 
       - name: Build with Maven
-        run: ./mvnw package -Pnative
+        run: ./mvnw package -Pnative --no-transfer-progress
 
       - name: Verify build
         run: |
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-            ./target/quinimbus;
+            ./target/quinimbus -V;
           elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            ./target/quinimbus.exe;
+            ./target/quinimbus.exe -V;
           elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            ./target/quinimbus;
+            ./target/quinimbus -V;
           fi
       
       - name: Deploy to GitHub Artifacts
