@@ -24,6 +24,7 @@ jobs:
         run: ./mvnw package -Pnative --no-transfer-progress
 
       - name: Verify build
+        shell: bash
         run: |
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
             ./target/quinimbus -V;
