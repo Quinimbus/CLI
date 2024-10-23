@@ -30,6 +30,15 @@ public class QuiNimbusCommand implements CommandLine.IVersionProvider {
     public String[] getVersion() throws Exception {
         var version = this.cliProperties.getProperty("cli.version", "<unknown>");
         var timestamp = this.cliProperties.getProperty("cli.build.timestamp", "<unknown>");
-        return new String[] {"%s [%s]".formatted(version, timestamp)};
+        var gitCommitId = this.cliProperties.getProperty("git.commit.id.abbrev", "<unknown>");
+        var gitCommitTime = this.cliProperties.getProperty("git.commit.time", "<unknown>");
+        if (version.endsWith("-SNAPSHOT")) {
+            return new String[] {
+                "QuiNimbus CLI %s [%s]".formatted(version, timestamp),
+                "  Git: %s [%s]".formatted(gitCommitId, gitCommitTime)
+            };
+        } else {
+            return new String[] {"QuiNimbus CLI %s".formatted(version)};
+        }
     }
 }

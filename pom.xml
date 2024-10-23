@@ -13,8 +13,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.release>21</maven.compiler.release>
         <exec.mainClass>cloud.quinimbus.cli.CLI</exec.mainClass>
         <picocli.version>4.7.6</picocli.version>
         <timestamp>${maven.build.timestamp}</timestamp>
@@ -80,20 +79,21 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>buildnumber-maven-plugin</artifactId>
-                <version>3.2.1</version>
+                <groupId>pl.project13.maven</groupId>
+                <artifactId>git-commit-id-plugin</artifactId>
+                <version>2.2.4</version>
                 <executions>
                     <execution>
-                        <phase>validate</phase>
+                        <id>get-the-git-infos</id>
                         <goals>
-                            <goal>create</goal>
+                            <goal>revision</goal>
                         </goals>
                     </execution>
                 </executions>
                 <configuration>
-                    <doCheck>true</doCheck>
-                    <doUpdate>true</doUpdate>
+                    <gitDescribe>
+                        <skip>trze</skip>
+                    </gitDescribe>
                 </configuration>
             </plugin>
         </plugins>
@@ -136,7 +136,11 @@
                             <mainClass>${exec.mainClass}</mainClass>
                             <fallback>false</fallback>
                             <buildArgs>
-                                <arg>-H:DashboardDump=fortune -H:+DashboardAll --enable-url-protocols=https -Os --emit build-report</arg>
+                                <arg>-H:DashboardDump=fortune</arg>
+                                <arg>-H:+DashboardAll</arg>
+                                <arg>--enable-url-protocols=https</arg>
+                                <arg>-Os</arg>
+                                <arg>--emit build-report</arg>
                             </buildArgs>
                             <agent>
                                 <enabled>true</enabled>
