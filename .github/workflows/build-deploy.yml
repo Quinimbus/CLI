@@ -11,14 +11,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up GraalVM
         uses: graalvm/setup-graalvm@v1
         with:
           distribution: 'graalvm'
           java-version: '23'
-          components: 'native-image'
 
       - name: Build with Maven
         run: ./mvnw package -Pnative --no-transfer-progress
