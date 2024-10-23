@@ -1,0 +1,40 @@
+name: Build and Deploy CLI executable
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          distribution: 'graalvm'
+          java-version: '21'
+          components: 'native-image'
+
+      - name: Build with Maven
+        run: ./mvnw package -Pnative
+
+      - name: Verify build
+        run: |
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            ./target/quinimbus;
+          elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            ./target/quinimbus.exe;
+          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            ./target/quinimbus;
+          fi
+      
+      - name: Deploy to GitHub Artifacts
+        uses: actions/upload-artifact@v4
+        with: 
+          name: quinimbus-cli-${{ matrix.os }}-snapshot
+          path: target/quinimbus*
