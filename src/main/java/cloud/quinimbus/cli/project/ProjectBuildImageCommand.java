@@ -48,7 +48,7 @@ public class ProjectBuildImageCommand implements Callable<Integer> {
             Logger.warn(
                     "No build images could be extracted from the output of docker bake, please check verbose output.");
         } else {
-            Logger.info("Built images:\n" + builtImages.stream().collect(Collectors.joining("\n\t")));
+            Logger.info("Built images:\n\t" + builtImages.stream().collect(Collectors.joining("\n\t")));
         }
         return 0;
     }
