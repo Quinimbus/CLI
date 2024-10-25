@@ -104,7 +104,7 @@ public class ProjectCreateCommand implements Callable<Integer> {
             return res;
         }
         Logger.foot("QuiNimbus project %s successfully created in %s".formatted(this.projectName, rootDir));
-        Logger.foot("For a quick start run the following in the project folder: docker-compose up --build");
+        Logger.info("For a quick start run the following in the project folder: quinimbus project build-images");
         return 0;
     }
 
