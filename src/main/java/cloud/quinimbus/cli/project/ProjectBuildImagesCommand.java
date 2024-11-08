@@ -18,6 +18,12 @@ public class ProjectBuildImagesCommand extends DockerCommand implements Callable
     private static final Pattern DOCKER_BAKE_EXTRACT_BUILT_IMAGE =
             Pattern.compile("^.*naming to ([\\w\\d\\./\\-:]+) done$");
 
+    @CommandLine.Option(
+            names = {"-c", "--clean"},
+            defaultValue = "false",
+            description = "Do not use cache and repull all images.")
+    private boolean clean;
+
     private final List<String> builtImages = new ArrayList<>();
 
     @Override
@@ -46,12 +52,20 @@ public class ProjectBuildImagesCommand extends DockerCommand implements Callable
 
     private int buildBackendImage() throws IOException {
         Logger.head("Building backend image");
-        return this.runDocker("buildx", "bake", "-f", "docker-bake.hcl");
+        if (this.clean) {
+            return this.runDocker("buildx", "bake", "-f", "docker-bake.hcl", "--no-cache", "--pull");
+        } else {
+            return this.runDocker("buildx", "bake", "-f", "docker-bake.hcl");
+        }
     }
 
     private int buildAdminUiImage() throws IOException {
         Logger.head("Building admin-ui image");
-        return this.runDocker("buildx", "bake", "-f", "docker-bake.hcl", "admin-ui");
+        if (this.clean) {
+            return this.runDocker("buildx", "bake", "-f", "docker-bake.hcl", "--no-cache", "--pull", "admin-ui");
+        } else {
+            return this.runDocker("buildx", "bake", "-f", "docker-bake.hcl", "admin-ui");
+        }
     }
 
     private int runDocker(String... args) throws IOException {
