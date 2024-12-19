@@ -1,9 +1,13 @@
-name: Build and Deploy CLI executable
+name: Build and Deploy CLI executable release
 
-on: 
+on:
   push:
-    branches:
-      - main
+    tags:
+      - '\d+.\d+.\d+'
+      - '\d+.\d+.\d+.\d+'
+
+permissions:
+    contents: write
 
 jobs:
   build:
@@ -36,10 +40,8 @@ jobs:
             ./target/quinimbus -V;
           fi
       
-      - name: Deploy to GitHub Artifacts
-        uses: actions/upload-artifact@v4
-        with: 
-          name: quinimbus-cli-${{ matrix.os == 'ubuntu-latest' && 'linux-latest' || matrix.os }}-snapshot
-          path: |
-            target/quinimbus*
-            !target/quinimbus-build-report.html
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            target/quinimbus-cli*.zip
