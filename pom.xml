@@ -136,8 +136,11 @@
                             <mainClass>${exec.mainClass}</mainClass>
                             <fallback>false</fallback>
                             <buildArgs>
+                                <arg>-H:+UnlockExperimentalVMOptions</arg>
                                 <arg>-H:DashboardDump=fortune</arg>
                                 <arg>-H:+DashboardAll</arg>
+                                <arg>-H:-ReduceImplicitExceptionStackTraceInformation</arg>
+                                <arg>-H:ResourceConfigurationFiles=resource-config.json</arg>
                                 <arg>--enable-url-protocols=https</arg>
                                 <arg>-Os</arg>
                                 <arg>--emit build-report</arg>

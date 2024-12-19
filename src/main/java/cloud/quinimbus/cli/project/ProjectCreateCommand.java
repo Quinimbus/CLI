@@ -1,5 +1,6 @@
 package cloud.quinimbus.cli.project;
 
+import cloud.quinimbus.cli.CLI;
 import cloud.quinimbus.cli.Logger;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -46,6 +47,12 @@ public class ProjectCreateCommand implements Callable<Integer> {
             defaultValue = "false",
             description = "Skip installation of archetype, for example to use a locally installed one.")
     private boolean skipArchetypeInstallation;
+
+    @CommandLine.Option(
+            names = {"--quinimbusVersion"},
+            defaultValue = "0.1.0.2",
+            description = "The version of quinimbus to use to create the project")
+    private String quinimbusVersion;
 
     @CommandLine.Option(
             names = {"-g", "--groupId"},
@@ -103,6 +110,7 @@ public class ProjectCreateCommand implements Callable<Integer> {
             Logger.error("Failed to create the project. You could try to run with -vo to get more verbose logging.");
             return res;
         }
+        Files.delete(rootDir.resolve("settings.xml"));
         Logger.foot("QuiNimbus project %s successfully created in %s".formatted(this.projectName, rootDir));
         Logger.info("For a quick start run the following in the project folder: quinimbus project build-images");
         return 0;
@@ -164,20 +172,25 @@ public class ProjectCreateCommand implements Callable<Integer> {
         }
         Logger.verbose("Removing %s".formatted(zipPath));
         Files.delete(zipPath);
+        try (var is = CLI.class.getResourceAsStream("/settings.xml")) {
+            if (is == null) {
+                throw new IllegalStateException("settings.xml missing");
+            }
+            Files.copy(is, rootDir.resolve("settings.xml"), StandardCopyOption.REPLACE_EXISTING);
+        }
     }
 
     private int installArchetype(Path rootDir) throws IOException {
         Logger.head("Installing the quinimbus archetype into the system");
-        var version = this.cliProperties.getProperty("cli.version");
+        var version = this.quinimbusVersion;
         var artifactId = this.cliProperties.getProperty("quinimbus.archetype.artifactId");
         var groupId = this.cliProperties.getProperty("quinimbus.archetype.groupId");
-        var repository = this.cliProperties.getProperty("quinimbus.repository");
         var depGetResult = this.runMvn(
                 rootDir,
                 "-U",
                 "dependency:get",
-                "-Dartifact=%s:%s:%s".formatted(groupId, artifactId, version),
-                "-DremoteRepositories=%s".formatted(repository));
+                "-ssettings.xml",
+                "-Dartifact=%s:%s:%s".formatted(groupId, artifactId, version));
         if (depGetResult != 0) {
             return depGetResult;
         }
@@ -191,13 +204,14 @@ public class ProjectCreateCommand implements Callable<Integer> {
                     .formatted(rootDir.resolve("pom.xml")));
             return 1;
         }
-        Logger.head("Createing the project using the archetype");
-        var archetypeVersion = this.cliProperties.getProperty("cli.version");
+        Logger.head("Creating the project using the archetype");
+        var archetypeVersion = this.quinimbusVersion;
         var archetypeArtifactId = this.cliProperties.getProperty("quinimbus.archetype.artifactId");
         var archetypeGroupId = this.cliProperties.getProperty("quinimbus.archetype.groupId");
         var result = this.runMvn(
                 rootDir,
                 "archetype:generate",
+                "-ssettings.xml",
                 "-DarchetypeGroupId=%s".formatted(archetypeGroupId),
                 "-DarchetypeArtifactId=%s".formatted(archetypeArtifactId),
                 "-DarchetypeVersion=%s".formatted(archetypeVersion),

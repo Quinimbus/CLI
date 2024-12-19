@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+    <profiles>
+        <profile>
+            <id>qn-repos</id>
+            <repositories>
+                <repository>
+                    <id>quinimbus-snapshots</id>
+                    <name>Quinimbus Snapshots</name>
+                    <url>https://repo.quinimbus.cloud/snapshots</url>
+                </repository>
+                <repository>
+                    <id>quinimbus-releases</id>
+                    <name>Quinimbus Releases</name>
+                    <url>https://repo.quinimbus.cloud/releases</url>
+                </repository>
+            </repositories>
+        </profile>
+    </profiles>
+    <activeProfiles>
+        <activeProfile>qn-repos</activeProfile>
+    </activeProfiles>
+</settings>
