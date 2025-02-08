@@ -1,0 +1,37 @@
+name: Test CLI executable
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          distribution: 'graalvm'
+          java-version: '23'
+
+      - name: Build with Maven
+        shell: bash
+        run: ./mvnw package -Pnative --no-transfer-progress
+
+      - name: Verify build
+        shell: bash
+        run: |
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            ./target/quinimbus -V;
+          elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            ./target/quinimbus.exe -V;
+          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            ./target/quinimbus -V;
+          fi
