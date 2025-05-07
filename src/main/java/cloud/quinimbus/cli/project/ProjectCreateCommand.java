@@ -2,9 +2,10 @@ package cloud.quinimbus.cli.project;
 
 import cloud.quinimbus.cli.CLI;
 import cloud.quinimbus.cli.Logger;
-import java.io.BufferedReader;
+import cloud.quinimbus.cli.action.maven.MavenArtifactBuilder;
+import cloud.quinimbus.cli.action.maven.MavenContext;
+import cloud.quinimbus.cli.action.maven.MavenOptionsBuilder;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
@@ -15,12 +16,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.PosixFilePermissions;
-import java.time.Duration;
-import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.Callable;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.commons.lang3.function.Failable;
 import picocli.CommandLine;
 
@@ -95,17 +92,24 @@ public class ProjectCreateCommand implements Callable<Integer> {
             return res;
         }
         this.installMvnw(rootDir);
+        var mavenContext = new MavenContext(
+                rootDir,
+                MavenOptionsBuilder.builder()
+                        .updateSnapshots(true)
+                        .settingsxml("settings.xml")
+                        .build(),
+                this.showMavenOutput);
         if (this.skipArchetypeInstallation) {
             Logger.warn("Skipping installation of the archetype.");
         } else {
-            res = this.installArchetype(rootDir);
+            res = this.installArchetype(mavenContext);
             if (res != 0) {
                 Logger.error(
                         "Failed to install the archetype. You could try to run with -vo to get more verbose logging.");
                 return res;
             }
         }
-        res = this.createProject(rootDir);
+        res = this.createProject(mavenContext);
         if (res != 0) {
             Logger.error("Failed to create the project. You could try to run with -vo to get more verbose logging.");
             return res;
@@ -180,25 +184,27 @@ public class ProjectCreateCommand implements Callable<Integer> {
         }
     }
 
-    private int installArchetype(Path rootDir) throws IOException {
+    private int installArchetype(MavenContext mavenContext) throws IOException {
         Logger.head("Installing the quinimbus archetype into the system");
         var version = this.quinimbusVersion;
         var artifactId = this.cliProperties.getProperty("quinimbus.archetype.artifactId");
         var groupId = this.cliProperties.getProperty("quinimbus.archetype.groupId");
-        var depGetResult = this.runMvn(
-                rootDir,
-                "-U",
-                "dependency:get",
-                "-ssettings.xml",
-                "-Dartifact=%s:%s:%s".formatted(groupId, artifactId, version));
+        var depGetResult = mavenContext
+                .dependencyGet(MavenArtifactBuilder.builder()
+                        .groupId(groupId)
+                        .artifactId(artifactId)
+                        .version(version)
+                        .build())
+                .call();
         if (depGetResult != 0) {
             return depGetResult;
         }
-        return this.runMvn(rootDir, "archetype:crawl");
+        return mavenContext.archetypeCrawl().call();
     }
 
-    private int createProject(Path rootDir) throws IOException {
+    private int createProject(MavenContext mavenContext) throws IOException {
         Logger.head("Installing maven wrapper into project folder");
+        var rootDir = mavenContext.getRootDir();
         if (Files.exists(rootDir.resolve("pom.xml"))) {
             Logger.error("%s is already present, you cannot create a new project here"
                     .formatted(rootDir.resolve("pom.xml")));
@@ -208,51 +214,21 @@ public class ProjectCreateCommand implements Callable<Integer> {
         var archetypeVersion = this.quinimbusVersion;
         var archetypeArtifactId = this.cliProperties.getProperty("quinimbus.archetype.artifactId");
         var archetypeGroupId = this.cliProperties.getProperty("quinimbus.archetype.groupId");
-        var result = this.runMvn(
-                rootDir,
-                "archetype:generate",
-                "-ssettings.xml",
-                "-DarchetypeGroupId=%s".formatted(archetypeGroupId),
-                "-DarchetypeArtifactId=%s".formatted(archetypeArtifactId),
-                "-DarchetypeVersion=%s".formatted(archetypeVersion),
-                "-DgroupId=%s".formatted(this.projectGroupId),
-                "-DartifactId=%s".formatted(this.projectArtifactId),
-                "-Dversion=%s".formatted(this.projectVersion),
-                "-Dpackage=%s.%s".formatted(this.projectGroupId, this.projectArtifactId),
-                "-DinteractiveMode=false");
+        var result = mavenContext
+                .archetypeGenerate(MavenArtifactBuilder.builder()
+                        .groupId(archetypeGroupId)
+                        .artifactId(archetypeArtifactId)
+                        .version(archetypeVersion)
+                        .build())
+                .withProperty("groupId", this.projectGroupId)
+                .withProperty("artifactId", this.projectArtifactId)
+                .withProperty("version", this.projectVersion)
+                .withProperty("package", "%s.%s".formatted(this.projectGroupId, this.projectArtifactId))
+                .call();
         Files.newDirectoryStream(rootDir.resolve(this.projectArtifactId))
                 .forEach(Failable.asConsumer(
                         p -> Files.move(p, rootDir.resolve(p.getFileName()), StandardCopyOption.REPLACE_EXISTING)));
         Files.delete(rootDir.resolve(this.projectArtifactId));
         return result;
-    }
-
-    private int runMvn(Path rootDir, String... args) throws IOException {
-        var command = Stream.concat(Stream.of("./mvnw", "--no-transfer-progress"), Arrays.stream(args))
-                .toArray(String[]::new);
-        Logger.verbose("Running %s".formatted(Arrays.stream(command).collect(Collectors.joining(" "))));
-        var process = new ProcessBuilder(command)
-                .redirectErrorStream(true)
-                .directory(rootDir.toFile())
-                .start();
-        while (process.isAlive()) {
-            try (var reader =
-                    new BufferedReader(new InputStreamReader(process.getInputStream(), Charset.forName("UTF-8")))) {
-                String line;
-                do {
-                    line = reader.readLine();
-                    if (line != null) {
-                        if (this.showMavenOutput) {
-                            Logger.verbose(line);
-                        }
-                    }
-                } while (line != null);
-            }
-            try {
-                Thread.sleep(Duration.ofMillis(100));
-            } catch (InterruptedException ex) {
-            }
-        }
-        return process.exitValue();
     }
 }
