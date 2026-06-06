@@ -24,7 +24,7 @@ jobs:
         uses: graalvm/setup-graalvm@v1
         with:
           distribution: 'graalvm'
-          java-version: '23'
+          java-version: '25'
 
       - name: Build with Maven
         shell: bash
